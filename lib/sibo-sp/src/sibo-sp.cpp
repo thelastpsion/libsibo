@@ -100,7 +100,7 @@ void SIBOSPConnection::_SendDataHeader(bool is_input_frame) {
 // Pin flipping utility methods
 
 void SIBOSPConnection::_DataPinWrite(uint8_t val) {
-#if defined(FASTPIN_DPORT)
+#if defined(FASTPIN_PORTD)
     if (_direct_pin_mode) {
         if (val == LOW) {
             PORTD &= ~_data_bit;
@@ -116,7 +116,7 @@ void SIBOSPConnection::_DataPinWrite(uint8_t val) {
 }
 
 void SIBOSPConnection::_DataPinMode(uint8_t mode) {
-#if defined(FASTPIN_DPORT)
+#if defined(FASTPIN_PORTD)
     if (_direct_pin_mode) {
         if (mode == INPUT) {
             PORTD &= ~_data_bit;
@@ -140,7 +140,7 @@ void SIBOSPConnection::_DataPinMode(uint8_t mode) {
 }
 
 void SIBOSPConnection::_ClockPinReset() {
-#if defined(FASTPIN_DPORT)
+#if defined(FASTPIN_PORTD)
     if (_direct_pin_mode) {
         DDRD |= _clock_bit;
         return; // skip the rest
@@ -165,7 +165,7 @@ void SIBOSPConnection::_DisableClock() {
 }
 
 void SIBOSPConnection::_DataPinReset() {
-#if defined(FASTPIN_DPORT)
+#if defined(FASTPIN_PORTD)
     if (_direct_pin_mode) { // && BOARD == "Uno"
         DDRD |= _clock_bit;
     } else {
@@ -177,7 +177,7 @@ void SIBOSPConnection::_DataPinReset() {
 }
 
 void SIBOSPConnection::_DirPinReset() {
-#if defined(FASTPIN_DPORT)
+#if defined(FASTPIN_PORTD)
     if (_direct_pin_mode) { // && BOARD == "Uno"
         DDRD |= _clock_bit;
     } else {
@@ -192,7 +192,7 @@ void SIBOSPConnection::_DirPinReset() {
 
 // Move Clock Pin HIGH and then LOW to indicate a cycle
 void SIBOSPConnection::_ClockCycle(byte cycles) {
-#if defined(FASTPIN_DPORT)
+#if defined(FASTPIN_PORTD)
     if (_direct_pin_mode) { // && BOARD == "Uno"
         for (byte _cx = 0; _cx < cycles; _cx++) {
             PORTD |= _clock_bit;
@@ -313,7 +313,7 @@ byte SIBOSPConnection::fetchDataFrame() {
     int input = 0;
 
     // Start fetching bits by sending clock pulses and reading the data line (Cycles 4-11)
-#if defined(FASTPIN_DPORT)
+#if defined(FASTPIN_PORTD)
     if (_direct_pin_mode) { // && BOARD == "Uno"
         for (byte _dx = 0; _dx < 8; _dx++) {
             PORTD |= _clock_bit;

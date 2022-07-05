@@ -7,12 +7,12 @@
 #include <Arduino.h>
 #include <unistd.h> 
 
-#if defined(ARDUINO_ARDUINO_NANO33BLE) || defined(ARDUINO_ARCH_SAMD) || defined(ARDUINO_ARCH_MBED_RP2040) || defined(ARDUINO_ARCH_RP2040)
+#if defined(ARDUINO_ARCH_MBED_RP2040) || defined(ARDUINO_ARCH_RP2040)
     #define RP2040
 #endif
 
-#if defined(ARDUINO_AVR_UNO)
-    #define FASTPIN_DPORT
+#if defined(ARDUINO_AVR_UNO) || defined(ARDUINO_AVR_NANO) || defined(ARDUINO_AVR_MEGA)
+    #define FASTPIN_PORTD
 // #elif defined(ARDUINO_ARCH_MBED_RP2040) || defined(ARDUINO_ARCH_RP2040)
 //     #define FASTPIN_PIO
 #else
