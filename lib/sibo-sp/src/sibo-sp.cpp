@@ -27,6 +27,7 @@
 // TODO: Strings are bad in Arduino land, m'kay? Find an alternative (char*?)
 
 
+
 #include "sibo-sp.h"
 
 SIBOSPConnection::SIBOSPConnection() {
@@ -34,7 +35,7 @@ SIBOSPConnection::SIBOSPConnection() {
     _force_asic5 = false;
 
 // Setting some arbitrary default pins here.
-#if defined(ARDUINO_ARCH_MBED_RP2040) || defined(ARDUINO_ARCH_RP2040)
+#if defined(RP2040)
     setDataPin(14);
     setClockPin(15);
     setDirPin(16);
@@ -99,10 +100,8 @@ void SIBOSPConnection::_SendDataHeader(bool is_input_frame) {
 // Pin flipping utility methods
 
 void SIBOSPConnection::_DataPinWrite(uint8_t val) {
-#if defined(ARDUINO_ARCH_MBED_RP2040) || defined(ARDUINO_ARCH_RP2040) || defined(ESP32)
-    digitalWrite(_data_pin, val);
-#else
-    if (_direct_pin_mode) { // && BOARD == "Uno"
+#if defined(FASTPIN_DPORT)
+    if (_direct_pin_mode) {
         if (val == LOW) {
             PORTD &= ~_data_bit;
         } else {
@@ -111,21 +110,14 @@ void SIBOSPConnection::_DataPinWrite(uint8_t val) {
     } else {
         digitalWrite(_data_pin, val);
     }
+#else
+    digitalWrite(_data_pin, val);
 #endif
 }
 
 void SIBOSPConnection::_DataPinMode(uint8_t mode) {
-#if defined(ARDUINO_ARCH_MBED_RP2040) || defined(ARDUINO_ARCH_RP2040) || defined(ESP32)
-    if (mode == INPUT) {
-        // pinMode(_data_pin, INPUT_PULLDOWN);
-        pinMode(_data_pin, INPUT);
-        digitalWrite(_dir_pin, LOW);
-    } else {
-        pinMode(_data_pin, OUTPUT);
-        digitalWrite(_dir_pin, HIGH);
-    }
-#else
-    if (_direct_pin_mode) { // && BOARD == "Uno"
+#if defined(FASTPIN_DPORT)
+    if (_direct_pin_mode) {
         if (mode == INPUT) {
             PORTD &= ~_data_bit;
             DDRD &= ~_data_bit;
@@ -135,18 +127,28 @@ void SIBOSPConnection::_DataPinMode(uint8_t mode) {
     } else {
         pinMode(_data_pin, mode);
     }
+#else
+    if (mode == INPUT) {
+        // pinMode(_data_pin, INPUT_PULLDOWN);
+        pinMode(_data_pin, INPUT);
+        digitalWrite(_dir_pin, LOW);
+    } else {
+        pinMode(_data_pin, OUTPUT);
+        digitalWrite(_dir_pin, HIGH);
+    }
 #endif
 }
 
 void SIBOSPConnection::_ClockPinReset() {
-#if defined(ARDUINO_ARCH_MBED_RP2040) || defined(ARDUINO_ARCH_RP2040) || defined(ESP32)
-    pinMode(_clock_pin, OUTPUT);
-#else
-    if (_direct_pin_mode) { // && BOARD == "Uno"
+#if defined(FASTPIN_DPORT)
+    if (_direct_pin_mode) {
         DDRD |= _clock_bit;
-    } else {
-        pinMode(_clock_pin, OUTPUT);
+        return; // skip the rest
+    // } else {
+    //     pinMode(_clock_pin, OUTPUT);
     }
+#else
+    pinMode(_clock_pin, OUTPUT);
 #endif
 }
 
@@ -163,34 +165,46 @@ void SIBOSPConnection::_DisableClock() {
 }
 
 void SIBOSPConnection::_DataPinReset() {
-#if defined(ARDUINO_ARCH_MBED_RP2040) || defined(ARDUINO_ARCH_RP2040) || defined(ESP32)
-    _DataPinMode(INPUT);
-#else
+#if defined(FASTPIN_DPORT)
     if (_direct_pin_mode) { // && BOARD == "Uno"
         DDRD |= _clock_bit;
     } else {
         pinMode(_clock_pin, OUTPUT);
     }
+#else
+    _DataPinMode(INPUT);
 #endif
 }
 
 void SIBOSPConnection::_DirPinReset() {
-#if defined(ARDUINO_ARCH_MBED_RP2040) || defined(ARDUINO_ARCH_RP2040) || defined(ESP32)
-    pinMode(_dir_pin, OUTPUT);
-    digitalWrite(_dir_pin, LOW);
-#else
+#if defined(FASTPIN_DPORT)
     if (_direct_pin_mode) { // && BOARD == "Uno"
         DDRD |= _clock_bit;
     } else {
         pinMode(_clock_pin, OUTPUT);
     }
+#else
+    pinMode(_dir_pin, OUTPUT);
+    digitalWrite(_dir_pin, LOW);
 #endif
 }
 
 
 // Move Clock Pin HIGH and then LOW to indicate a cycle
 void SIBOSPConnection::_ClockCycle(byte cycles) {
-#if defined(ARDUINO_ARCH_MBED_RP2040) || defined(ARDUINO_ARCH_RP2040)
+#if defined(FASTPIN_DPORT)
+    if (_direct_pin_mode) { // && BOARD == "Uno"
+        for (byte _cx = 0; _cx < cycles; _cx++) {
+            PORTD |= _clock_bit;
+            PORTD &= ~_clock_bit;
+        }
+    } else {
+        for (byte _cx = 0; _cx < cycles; _cx++) {
+            digitalWrite(_clock_pin, HIGH);
+            digitalWrite(_clock_pin, LOW);
+        }
+    }
+#elif defined(RP2040)
     for (byte _cx = 0; _cx < cycles; _cx++) {
         gpio_put(_clock_pin, 1);
         gpio_put(_clock_pin, 1);
@@ -221,26 +235,24 @@ void SIBOSPConnection::_ClockCycle(byte cycles) {
         // digitalWrite(_clock_pin, HIGH);
         // digitalWrite(_clock_pin, LOW);
     }
-#elif defined(ESP32)
+#else
     for (byte _cx = 0; _cx < cycles; _cx++) {
         digitalWrite(_clock_pin, HIGH);
         usleep(UPAUSE); // ? Is this really needed for anything but the Sigrok decoder?
         digitalWrite(_clock_pin, LOW);
         usleep(UPAUSE); // ? See above.
     }
-#else
-    if (_direct_pin_mode) { // && BOARD == "Uno"
-        for (byte _cx = 0; _cx < cycles; _cx++) {
-            PORTD |= _clock_bit;
-            PORTD &= ~_clock_bit;
-        }
-    } else {
-        for (byte _cx = 0; _cx < cycles; _cx++) {
-            digitalWrite(_clock_pin, HIGH);
-            digitalWrite(_clock_pin, LOW);
-        }
-    }
 #endif
+}
+
+// SIBO-SP reads on CLK up and writes on CLK down. So this sends:
+// - down CLK and data up/down
+// - up CLK and maintains data
+//
+//? What happens if this is called on a machine without any fast pin functionality?
+//! This needs to error if the above happens. It should have been checked beforehand.
+void _SendDataBitFast(uint8_t val) {
+
 }
 
 
@@ -270,9 +282,8 @@ void SIBOSPConnection::sendNullFrame() {
 
 // Sends a 12-bit control frame to the slave with the payload in 'data'.
 void SIBOSPConnection::sendControlFrame(byte data) {
-    // // TODO: Does _SendControlHeader() really need to be a separate method?
-    // _SendControlHeader();
     _EnableClock();
+
     // Send start bit (Cycle 1)
     _DataPinMode(OUTPUT);
     _DataPinWrite(HIGH);
@@ -281,10 +292,6 @@ void SIBOSPConnection::sendControlFrame(byte data) {
     // Send low ctl bit and first idle bit (Cycles 2-3)
     _DataPinWrite(LOW);
     _ClockCycle(2);
-
-    // // Send idle bit
-    // _SendIdleBit();
-    // _ClockCycle(1);
 
     // Send payload (Cycles 4-11)
     _SendPayload(data);
@@ -306,25 +313,26 @@ byte SIBOSPConnection::fetchDataFrame() {
     int input = 0;
 
     // Start fetching bits by sending clock pulses and reading the data line (Cycles 4-11)
-#if defined(ARDUINO_ARCH_MBED_RP2040) || defined(ARDUINO_ARCH_RP2040) || defined(ESP32)
-    for (byte _dx = 0; _dx < 8; _dx++) {
-        digitalWrite(_clock_pin, HIGH);
-        input = input | (digitalRead(_data_pin) << _dx);
-        digitalWrite(_clock_pin, LOW);
-    }
-#else
+#if defined(FASTPIN_DPORT)
     if (_direct_pin_mode) { // && BOARD == "Uno"
         for (byte _dx = 0; _dx < 8; _dx++) {
             PORTD |= _clock_bit;
             input |= (((PIND & _data_bit) == _data_bit) << _dx);
             PORTD ^= _clock_bit;
         }
+        return;
     } else {
         for (byte _dx = 0; _dx < 8; _dx++) {
             digitalWrite(_clock_pin, HIGH);
-            input = input | (digitalRead(_data_pin) << _dx);
+            input |= (digitalRead(_data_pin) << _dx);
             digitalWrite(_clock_pin, LOW);
         }
+    }
+#else
+    for (byte _dx = 0; _dx < 8; _dx++) {
+        digitalWrite(_clock_pin, HIGH);
+        input |= (digitalRead(_data_pin) << _dx);
+        digitalWrite(_clock_pin, LOW);
     }
 #endif
 
@@ -574,8 +582,8 @@ bool SIBOSPConnection::setDirPin(byte pin) {
 }
 
 void SIBOSPConnection::setDirectPinMode(bool flag) {
-#if defined(ARDUINO_ARCH_MBED_RP2040) || defined(ARDUINO_ARCH_RP2040) || defined(ESP32)
-    _direct_pin_mode = false; // No direct pin on ESP32 or RP2040
+#if defined(FASTPIN_UNAVAILABLE)
+    _direct_pin_mode = false; // Just keep setting it to false
 #else
     _direct_pin_mode = flag;
 #endif

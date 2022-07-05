@@ -11,6 +11,14 @@
     #define RP2040
 #endif
 
+#if defined(ARDUINO_AVR_UNO)
+    #define FASTPIN_DPORT
+// #elif defined(ARDUINO_ARCH_MBED_RP2040) || defined(ARDUINO_ARCH_RP2040)
+//     #define FASTPIN_PIO
+#else
+    #define FASTPIN_UNAVAILABLE
+#endif
+
 #define SP_SCTL_READ_MULTI_BYTE   0b11010000
 #define SP_SCTL_READ_SINGLE_BYTE  0b11000000
 #define SP_SCTL_WRITE_MULTI_BYTE  0b10010000
