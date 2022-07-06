@@ -3,7 +3,7 @@
 
 #include <Arduino.h>
 #include <time.h>
-#ifndef ARDUINO_AVR_UNO
+#if !defined(ARDUINO_AVR_UNO) || !defined(ARDUINO_AVR_NANO) || !defined(ARDUINO_AVR_MEGA)
   #include <sys/utime.h>
 #endif
 #include <sibo-sp.h>
