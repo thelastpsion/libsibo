@@ -320,7 +320,6 @@ byte SIBOSPConnection::fetchDataFrame() {
             input |= (((PIND & _data_bit) == _data_bit) << _dx);
             PORTD ^= _clock_bit;
         }
-        return;
     } else {
         for (byte _dx = 0; _dx < 8; _dx++) {
             digitalWrite(_clock_pin, HIGH);
