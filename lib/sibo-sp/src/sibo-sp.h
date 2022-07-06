@@ -7,7 +7,7 @@
 #include <Arduino.h>
 #include <unistd.h> 
 
-#if defined(ARDUINO_ARCH_MBED_RP2040) || defined(ARDUINO_ARCH_RP2040)
+#if defined(ARDUINO_ARCH_MBED_RP2040) || defined(ARDUINO_ARCH_RP2040) || defined(RASPBERRYPI_PICO)
     #define RP2040
 #endif
 
