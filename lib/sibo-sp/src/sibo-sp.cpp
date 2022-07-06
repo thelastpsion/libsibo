@@ -429,6 +429,11 @@ void SIBOSPConnection::setAddress(unsigned long address) {
     _cur_address = address;
 }
 
+void SIBOSPConnection::setDevice(byte device) {
+    _cur_device = device;
+    setAddress(0);
+}
+
 
 // Getters
 byte SIBOSPConnection::getInfoByte() {

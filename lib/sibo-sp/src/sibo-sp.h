@@ -79,6 +79,8 @@ class SIBOSPConnection {
         void setAddress(unsigned long);
         void useLastSetAddress();
 
+        void setDevice(byte);
+
         byte getASIC4InputRegister();
         void sendASIC4DeviceSizeRegister();
 

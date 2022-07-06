@@ -71,7 +71,8 @@ void dumpblock(int _block) {
 void getSSDFormat() {
   unsigned int first_two_bytes = 0;
   
-  sibosp.setAddress(0);
+  sibosp.setDevice(0); // Automatically sets address to 0 as well.
+  // sibosp.setAddress(0);
   sibosp.sendControlFrame(SP_SCTL_READ_MULTI_BYTE | 0); // Tell the SSD we want to read some data
 
   first_two_bytes = sibosp.fetchDataFrame() | (sibosp.fetchDataFrame() << 8);
@@ -192,6 +193,9 @@ void setup() {
   Reset();
 }
 
+
+// TODO: Investigate serialEvent()
+
 void loop() {
   while (Serial.available() > 0) {
     char incomingCharacter = Serial.read();
@@ -247,12 +251,13 @@ void loop() {
       //   break;
         
       case 'n':
-        curblock = (curblock + 1) % (sibosp.getTotalBlocks() + 1);
+        curblock = (curblock + 1) % (sibosp.getTotalBlocks());
         break;
 
       case 'N':
         curblock = 0;
-        curdev = (curdev + 1) % (sibosp.getTotalDevices() + 1);
+        curdev = (curdev + 1) % (sibosp.getTotalDevices());
+        sibosp.setDevice(curdev);
         break;
 
       case 'p':
