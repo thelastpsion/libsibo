@@ -193,11 +193,8 @@ void setup() {
   Reset();
 }
 
-
-// TODO: Investigate serialEvent()
-
 void loop() {
-  while (Serial.available() > 0) {
+  while (Serial.available()) {
     char incomingCharacter = Serial.read();
     switch (incomingCharacter) {
       case '1':
