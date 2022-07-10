@@ -147,9 +147,10 @@ void SIBOSPConnection::_ClockPinReset() {
     // } else {
     //     pinMode(_clock_pin, OUTPUT);
     }
-#else
-    pinMode(_clock_pin, OUTPUT);
 #endif
+//#else
+    pinMode(_clock_pin, OUTPUT);
+//#endif
 }
 
 void SIBOSPConnection::_EnableClock() {
