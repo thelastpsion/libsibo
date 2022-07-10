@@ -206,7 +206,6 @@ void SIBOSPConnection::_ClockCycle(byte cycles) {
         }
     }
 #elif defined(RP2040)
-    int i = 0;
     for (byte _cx = 0; _cx < cycles; _cx++) {
         gpio_put(_clock_pin, 1);
         gpio_put(_clock_pin, 1);
