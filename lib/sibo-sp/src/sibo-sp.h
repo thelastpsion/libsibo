@@ -128,6 +128,7 @@ class SIBOSPConnection {
         void _DirPinReset();
         void _EnableClock();
         void _DisableClock();
+        void _SendDataBitFast(bool val);
 
         void _FetchSSDInfo();
 

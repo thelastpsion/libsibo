@@ -194,7 +194,7 @@ void SIBOSPConnection::_DirPinReset() {
 // Move Clock Pin HIGH and then LOW to indicate a cycle
 void SIBOSPConnection::_ClockCycle(byte cycles) {
 #if defined(FASTPIN_PORTD)
-    if (_direct_pin_mode) { // && BOARD == "Uno"
+    if (_direct_pin_mode) {
         for (byte _cx = 0; _cx < cycles; _cx++) {
             PORTD |= _clock_bit;
             PORTD &= ~_clock_bit;
@@ -206,6 +206,7 @@ void SIBOSPConnection::_ClockCycle(byte cycles) {
         }
     }
 #elif defined(RP2040)
+    int i = 0;
     for (byte _cx = 0; _cx < cycles; _cx++) {
         gpio_put(_clock_pin, 1);
         gpio_put(_clock_pin, 1);
@@ -219,19 +220,10 @@ void SIBOSPConnection::_ClockCycle(byte cycles) {
         gpio_put(_clock_pin, 1);
         gpio_put(_clock_pin, 1);
         gpio_put(_clock_pin, 1);
+        
         // sleep_us(0);
         gpio_put(_clock_pin, 0);
-        gpio_put(_clock_pin, 0);
-        gpio_put(_clock_pin, 0);
-        gpio_put(_clock_pin, 0);
-        gpio_put(_clock_pin, 0);
-        gpio_put(_clock_pin, 0);
-        gpio_put(_clock_pin, 0);
-        gpio_put(_clock_pin, 0);
-        gpio_put(_clock_pin, 0);
-        gpio_put(_clock_pin, 0);
-        gpio_put(_clock_pin, 0);
-        gpio_put(_clock_pin, 0);
+
         // sleep_us(0);
         // digitalWrite(_clock_pin, HIGH);
         // digitalWrite(_clock_pin, LOW);
@@ -252,8 +244,18 @@ void SIBOSPConnection::_ClockCycle(byte cycles) {
 //
 //? What happens if this is called on a machine without any fast pin functionality?
 //! This needs to error if the above happens. It should have been checked beforehand.
-void _SendDataBitFast(uint8_t val) {
+void SIBOSPConnection::_SendDataBitFast(bool val) {
+#if defined(RP2040)
+    gpio_put_masked((1 << _clock_pin) + (1 << _data_pin),  (val << _data_pin));
+    gpio_put_masked((1 << _clock_pin) + (1 << _data_pin),  (val << _data_pin));
+    gpio_put_masked((1 << _clock_pin) + (1 << _data_pin),  (val << _data_pin));
+    
+    gpio_put_masked((1 << _clock_pin) + (1 << _data_pin),  (1 << _clock_pin) + (val << _data_pin));
+    gpio_put_masked((1 << _clock_pin) + (1 << _data_pin),  (1 << _clock_pin) + (val << _data_pin));
+    gpio_put_masked((1 << _clock_pin) + (1 << _data_pin),  (1 << _clock_pin) + (val << _data_pin));
 
+    gpio_put_masked((1 << _clock_pin) + (1 << _data_pin),  0);
+#endif
 }
 
 
@@ -287,19 +289,29 @@ void SIBOSPConnection::sendControlFrame(byte data) {
 
     // Send start bit (Cycle 1)
     _DataPinMode(OUTPUT);
+#ifdef RP2040
+    _SendDataBitFast(1);
+    _SendDataBitFast(0);
+    _SendDataBitFast(0);    
+#else
     _DataPinWrite(HIGH);
     _ClockCycle(1);
-
     // Send low ctl bit and first idle bit (Cycles 2-3)
     _DataPinWrite(LOW);
     _ClockCycle(2);
+#endif
+
 
     // Send payload (Cycles 4-11)
     _SendPayload(data);
 
     // Send last idle bit (Cycle 12)
     // _SendIdleBit();
+#ifdef RP2040
+    _SendDataBitFast(0);    
+#else
     _ClockCycle(1);
+#endif
 
     // End the frame by switching to input
     _DataPinMode(INPUT);
