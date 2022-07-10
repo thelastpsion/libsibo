@@ -107,8 +107,9 @@ void SIBOSPConnection::_DataPinWrite(uint8_t val) {
         } else {
             PORTD |= _data_bit;
         }
-    } else {
-        digitalWrite(_data_pin, val);
+        return;
+    // } else {
+    //     digitalWrite(_data_pin, val);
     }
 #else
     digitalWrite(_data_pin, val);
