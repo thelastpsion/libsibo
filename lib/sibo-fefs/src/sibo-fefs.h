@@ -1,5 +1,5 @@
-#ifndef SIBO_FLASHFS
-#define SIBO_FLASHFS
+#ifndef SIBO_FEFS
+#define SIBO_FEFS
 
 #include <Arduino.h>
 #include <time.h>
@@ -16,7 +16,7 @@
 // #endif
 
 
-#define FLASH_TYPE   0xf1a5
+#define FEFS_TYPE   0xf1a5
 #define IMAGE_ISROM  0xffffffff
 #define NULL_PTR     0xffffff
 
@@ -106,5 +106,5 @@ char *rtrim(char *s);
 // 	return s;
 // }
 
-void getFlashTitle(SIBOSPConnection &sibosp);
+void getFEFSTitle(SIBOSPConnection &sibosp);
 void walkpath(int pos, char path[], char *buffer[], const char img_name[], const long buffer_len);

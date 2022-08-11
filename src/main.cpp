@@ -1,7 +1,8 @@
 /*
  * libsibo: A collection of libraries for communicating with peripherals compatible with Psion's SIBO range of computers.
  * 
- * It currently only includes code for the SIBO Serial Protocol (SIBO-SP) and dealing with Psion's Flash FS.
+ * It currently only includes code for the SIBO Serial Protocol (SIBO-SP) and dealing with Psion's proprietary flash
+ * filesystem, FEFS.
  * 
  *** TEST ROUTINES ***
  * This used to be the main code for the Arduino portion of SIBODUMP, but its use has expanded and will continue to expand.
@@ -21,7 +22,7 @@
 //#include "misc.h"
 
 #include "sibo-sp.h"
-#include "sibo-flashfs.h"
+#include "sibo-fefs.h"
 
 
 #define BAUDRATE 115200
@@ -67,7 +68,7 @@ void dumpblock(int _block) {
 
 
 // Detects the filesystem on the SSD based on a small number of options and sends the result to Serial
-// (There are only two types of filesystem on an SSD: Psion's Flash FS and FAT [FAT12?])
+// (There are only two types of filesystem on an SSD: FEFS and FAT [FAT12?])
 void getSSDFormat() {
   unsigned int first_two_bytes = 0;
   
@@ -77,9 +78,9 @@ void getSSDFormat() {
 
   first_two_bytes = sibosp.fetchDataFrame() | (sibosp.fetchDataFrame() << 8);
 
-  if (first_two_bytes == FLASH_TYPE) {
-    Serial.println("Found Psion FlashFS formatted device.");
-    getFlashTitle(sibosp);
+  if (first_two_bytes == FEFS_TYPE) {
+    Serial.println("Found Psion FEFS formatted device.");
+    getFEFSTitle(sibosp);
   } else {
     Serial.print("Found this header: ");
     Serial.println(first_two_bytes);

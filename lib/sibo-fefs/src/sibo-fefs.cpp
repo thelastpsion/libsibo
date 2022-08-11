@@ -1,4 +1,4 @@
-#include "sibo-flashfs.h"
+#include "sibo-fefs.h"
 
 int count_files = 0, count_dirs = 0;
 const char* slash = "/\0";
@@ -276,7 +276,7 @@ void walkpath(int pos, char path[], char *buffer[], const char img_name[], const
 //     // fp = fopen(argv[0], "rb");
 //     // fread(&img_type, 2, 1, fp);
 
-//     // if (img_type != FLASH_TYPE) {
+//     // if (img_type != FEFS_TYPE) {
 //     //     printf("%s: %s: Not a Psion Flash or ROM SSD image.\n", switches.called_with, argv[0]);
 //     //     fclose(fp);
 //     //     exit(EXIT_FAILURE); 
@@ -330,8 +330,8 @@ void walkpath(int pos, char path[], char *buffer[], const char img_name[], const
 
 
 
-// Grabs the title from a Psion Flash FS filesystem
-void getFlashTitle(SIBOSPConnection &sibosp) {
+// Grabs the title from an FEFS filesystem
+void getFEFSTitle(SIBOSPConnection &sibosp) {
   char img_name[12];
 
   sibosp.setAddress(IMAGE_NAME_OFFSET);
