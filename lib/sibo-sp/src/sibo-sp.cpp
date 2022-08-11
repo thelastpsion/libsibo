@@ -209,7 +209,7 @@ void SIBOSPConnection::_ClockCycle(byte cycles) {
 #elif defined(RP2040)
     for (byte _cx = 0; _cx < cycles; _cx++) {
         gpio_put(_clock_pin, 1);
-        gpio_put(_clock_pin, 1);
+        gpio_put(_clock_pin, 1); // Repeated multiple times to slow down the transfer
         gpio_put(_clock_pin, 1);
         gpio_put(_clock_pin, 1);
         gpio_put(_clock_pin, 1);
@@ -231,9 +231,7 @@ void SIBOSPConnection::_ClockCycle(byte cycles) {
 #else
     for (byte _cx = 0; _cx < cycles; _cx++) {
         digitalWrite(_clock_pin, HIGH);
-        usleep(UPAUSE); // ? Is this really needed for anything but the Sigrok decoder?
         digitalWrite(_clock_pin, LOW);
-        usleep(UPAUSE); // ? See above.
     }
 #endif
 }
@@ -247,7 +245,7 @@ void SIBOSPConnection::_ClockCycle(byte cycles) {
 void SIBOSPConnection::_SendDataBitFast(bool val) {
 #if defined(RP2040)
     gpio_put_masked((1 << _clock_pin) + (1 << _data_pin),  (val << _data_pin));
-    gpio_put_masked((1 << _clock_pin) + (1 << _data_pin),  (val << _data_pin));
+    gpio_put_masked((1 << _clock_pin) + (1 << _data_pin),  (val << _data_pin)); // Slow it down...
     gpio_put_masked((1 << _clock_pin) + (1 << _data_pin),  (val << _data_pin));
     
     gpio_put_masked((1 << _clock_pin) + (1 << _data_pin),  (1 << _clock_pin) + (val << _data_pin));
@@ -326,12 +324,18 @@ byte SIBOSPConnection::fetchDataFrame() {
     int input = 0;
 
     // Start fetching bits by sending clock pulses and reading the data line (Cycles 4-11)
-#if defined(FASTPIN_PORTD)
-    if (_direct_pin_mode) { // && BOARD == "Uno"
+#if !defined(FASTPIN_UNAVAILABLE)
+    if (_direct_pin_mode) {
         for (byte _dx = 0; _dx < 8; _dx++) {
+#if defined(FASTPIN_PORTD)
             PORTD |= _clock_bit;
             input |= (((PIND & _data_bit) == _data_bit) << _dx);
             PORTD ^= _clock_bit;
+#elif defined(RP2040)
+            gpio_put(_clock_pin, 1);
+            input |= (gpio_get(_data_pin) << _dx);
+            gpio_put(_clock_pin, 0);
+#endif
         }
     } else {
         for (byte _dx = 0; _dx < 8; _dx++) {
@@ -340,6 +344,17 @@ byte SIBOSPConnection::fetchDataFrame() {
             digitalWrite(_clock_pin, LOW);
         }
     }
+// #elif defined(RP2040)
+//     if (_direct_pin_mode) {
+//         for (byte _dx = 0; _dx < 8; _dx++) {
+//         }
+//     } else {
+//         for (byte _dx = 0; _dx < 8; _dx++) {
+//             digitalWrite(_clock_pin, HIGH);
+//             input |= (digitalRead(_data_pin) << _dx);
+//             digitalWrite(_clock_pin, LOW);
+//         }
+//     }
 #else
     for (byte _dx = 0; _dx < 8; _dx++) {
         digitalWrite(_clock_pin, HIGH);
@@ -349,7 +364,6 @@ byte SIBOSPConnection::fetchDataFrame() {
 #endif
 
     // Send last idle bit (Cycle 12)
-    // _SendIdleBit();
     _ClockCycle(1);
 
     // NOTE: Data pin direction left as INPUT to comply with spec
@@ -380,8 +394,12 @@ void SIBOSPConnection::_SendPayload(byte data) {
     _DataPinMode(OUTPUT); // Not really needed if this is only ever being called after a header has been sent
     for (byte _dx = 0; _dx < 8; _dx++) {
         output = ((data & (0b00000001 << _dx)) == 0) ? LOW : HIGH;
+//#if defined(RP2040)
+//        _SendDataBitFast(output);
+//#else
         _DataPinWrite(output);
         _ClockCycle(1);
+//#endif
     }
     if (output) _DataPinWrite(0); // switch off data pin if it's been left on by the last bit in the payload (D7)
     // _DataPinMode(INPUT);
