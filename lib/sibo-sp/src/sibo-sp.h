@@ -5,7 +5,7 @@
 #define _SIBOSP_H
 
 #include <Arduino.h>
-#include <unistd.h> 
+//#include <unistd.h>
 
 #if defined(ARDUINO_ARCH_MBED_RP2040) || defined(ARDUINO_ARCH_RP2040) || defined(RASPBERRYPI_PICO)
     #define RP2040
@@ -95,7 +95,7 @@ class SIBOSPConnection {
         byte _typecode;
         byte _devices;
         byte _sizecode;
-        int  _blocks;
+        word _blocks;
         byte _asic4inputreg;
         byte _asic4devsizereg;
 
