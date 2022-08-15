@@ -66,6 +66,49 @@ void dumpblock(int _block) {
   }
 }
 
+// Dumps a block of 256 bytes over serial, based on the current block number
+void checkblock(int _block) {
+  char dump_a[256], dump_b[256];
+  bool flag = false;
+
+  if (sibosp.getID() == SIBO_ID_ASIC5 || sibosp.getForceASIC5()) SetASIC5PortBMode(0);
+
+  // First dump
+  sibosp.setAddress(((unsigned long)_block << 8));
+  sibosp.sendControlFrame(SP_SCTL_READ_MULTI_BYTE | 0);
+  for (int b = 0; b < 256; b++) {
+    dump_a[b] = sibosp.fetchDataFrame();
+  }
+  // Second dump
+  sibosp.setAddress(((unsigned long)_block << 8));
+  sibosp.sendControlFrame(SP_SCTL_READ_MULTI_BYTE | 0);
+  for (int b = 0; b < 256; b++) {
+    dump_b[b] = sibosp.fetchDataFrame();
+  }
+
+  for (int b = 0; b < 256; b++) {
+    if (dump_a[b] != dump_b[b]) {
+      if (!flag) {
+        flag = true;
+        Serial.print("Error found in block ");
+        Serial.print(curdev);
+        Serial.print("/");
+        Serial.print(_block);
+        Serial.print(" (dev/blk), offset(s) ");
+      } else {
+        Serial.print(", ");
+      }
+      Serial.print(b);
+    }
+  }
+  if (flag) {
+    Serial.println();
+  } else {
+    Serial.println("OK");
+  }
+
+}
+
 
 // Detects the filesystem on the SSD based on a small number of options and sends the result to Serial
 // (There are only two types of filesystem on an SSD: FEFS and FAT [FAT12?])
@@ -230,6 +273,11 @@ void loop() {
         Serial.write(sibosp.getInfoByte());
         break;
  
+      case 'c':
+      case 'C':
+        checkblock(curblock);
+        break;
+
       case 'd':
       case 'D':
         dump(sibosp.getTotalBlocks());
