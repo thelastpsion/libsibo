@@ -66,7 +66,7 @@ void dumpblock(int _block) {
   }
 }
 
-// Dumps a block of 256 bytes over serial, based on the current block number
+// Grabs a block of 256 bytes twice and compares the dumps
 void checkblock(int _block) {
   char dump_a[256], dump_b[256];
   bool flag = false;
