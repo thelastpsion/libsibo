@@ -1,0 +1,79 @@
+.program sibosp
+
+.define CLK      0b001
+.define DATA_OUT 0b010
+.define CLK_OE   0b100
+
+.side_set 3
+
+    set pindirs, 0          side CLK_OE       ; Don't know if this is needed, or it can be set in C
+
+.wrap_target
+hang:
+    jmp hang                side CLK_OE       ; Loop forever, but also make sure everything's set to idle
+                                              ; (DATA_OUT off, CLK off, ~CLK_OE on)
+
+
+; FRAME_DATA_SEND, FRAME_CTRL and FRAME_DATA_RECV can be force-jumped to in C
+
+public frame_data_send:
+    set pindirs, 1          side DATA_OUT
+    set pins, 1             side DATA_OUT     ; Bit 1 Set
+    set x, 7                side DATA_OUT+CLK ; Bit 1 Clock up (and set x to 7 for later)
+    nop                     side DATA_OUT     ; Bit 2 Stays Set
+    jmp send_payload        side DATA_OUT+CLK ; Idle bit Clock Up
+
+
+public frame_ctrl:
+    set pindirs, 1          side DATA_OUT
+    set pins, 1             side DATA_OUT+CLK ; Bit 1 Set
+    set x, 7                side DATA_OUT     ; Bit 1 Clock up (and set x to 7 for later)
+    set pins, 0             side DATA_OUT+CLK ; Bit 2 Unset
+    jmp send_payload        side DATA_OUT     ; Bit 2 Clock Up (and jump to do Idle bit and the rest of the frame)
+
+
+send_payload:
+    set pins, 0             side DATA_OUT     ; First idle bit (does nothing if from Ctrl frame)
+    nop                     side DATA_OUT+CLK ; Idle bit Clock Up
+send_bitloop:
+    out pins, 1             side DATA_OUT     ; Set Data bit (D0-D7)
+    jmp x-- send_bitloop    side DATA_OUT+CLK ; Data bit Clock Up (and loop)
+    set pins, 0             side DATA_OUT     ; Send final idle bit
+    nop                     side DATA_OUT+CLK ; Idle bit Clock Up
+    set pindirs, 0          side CLK_OE       ; Sets things back to wating
+    jmp hang                side CLK_OE
+
+
+public frame_data_recv:
+    set pindirs, 1          side DATA_OUT    
+    set pins, 1             side DATA_OUT     ; Bit 1 Set
+    nop                     side DATA_OUT+CLK ; Bit 1 Clock up
+    nop                     side DATA_OUT     ; Bit 2 Stays Set
+    nop                     side DATA_OUT+CLK ; Bit 2 Clock up
+    set pins, 0             side DATA_OUT     ; First idle bit
+    set pindirs, 0          side CLK          ; Switch the line (and Clock Up)
+    set x, 7                side 0            ; Set clock low for Frame Bit 4 (D0): Ready to receive...
+recv_bitloop:
+    in pins, 1              side CLK          ; Get D0-D7 (Frame Bits 4-11)
+    jmp x-- recv_bitloop    side 0            ; Loop (or set final idle bit)
+    nop                     side CLK          ; Idle bit Clock Up
+
+                                              ; no need for "jmp hang" here, as ".wrap" will take care of it
+                                              ; Going back to HANG also turns off CLK and enables ~CLK_OE for us
+.wrap
+
+
+% c-sdk {
+
+void sibosp_reset_program_init(PIO pio, uint sm, uint offset, uint pin, float div) {
+    pio_sm_config c = sibosp_reset_program_get_default_config(offset);
+    pio_gpio_init(pio, pin);
+    sm_config_set_set_pins (&c, pin, 1);
+    pio_sm_set_consecutive_pindirs(pio, sm, pin, 1, true);
+
+    sm_config_set_clkdiv(&c, div);
+
+    pio_sm_init(pio, sm, offset, &c);
+}
+
+%}
