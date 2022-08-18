@@ -186,6 +186,7 @@ void printinfo() {
     // printf("SIZE: %dx%s\n", sibosp.getTotalDevices(), sibosp.getSize().c_str());
     Serial.print("SIZE: ");
     Serial.print(sibosp.getTotalDevices());
+    Serial.print("x");
     Serial.println(sibosp.getSize().c_str());
   }
 
