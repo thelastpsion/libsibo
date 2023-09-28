@@ -36,9 +36,9 @@ SIBOSPConnection::SIBOSPConnection() {
 
 // Setting some arbitrary default pins here.
 #if defined(RP2040)
-    setDataPin(14);
-    setClockPin(15);
-    setDirPin(16);
+    setDataPin(19);
+    setClockPin(16);
+    setDirPin(18);
     setClockEnablePin(17);
 #elif defined(ESP32)
     setDataPin(17);
@@ -159,8 +159,9 @@ void SIBOSPConnection::_EnableClock() {
 
 void SIBOSPConnection::_DisableClock() {
     pinMode(_clock_pin, INPUT);
-    // digitalWrite(_clock_enable_pin, HIGH);
-    pinMode(_clock_enable_pin, INPUT_PULLUP);
+    pinMode(_clock_enable_pin, OUTPUT);
+    digitalWrite(_clock_enable_pin, HIGH);
+//    pinMode(_clock_enable_pin, HIGH);
 }
 
 void SIBOSPConnection::_DataPinReset() {
@@ -365,6 +366,7 @@ byte SIBOSPConnection::fetchDataFrame() {
 
     // NOTE: Data pin direction left as INPUT to comply with spec
 
+    _DisableClock();
     return input;
 }
 
