@@ -227,7 +227,26 @@ void Reset() {
   sibosp.Reset();
 }
 
-
+void help() {
+  Serial.println("1:    Return the byte in ASIC4/5 Register 1");
+  Serial.println("2:    Return the byte in ASIC4/5 Register 2");
+  Serial.println("4:    Talk to ASIC4 in ASIC4 mode (no effect with ASIC5)");
+  Serial.println("5:    Force ASIC5 mode (ID:2) for ASIC4 (no effect with ASIC5)");
+  Serial.println("a/A:  Forcing ASIC5 mode? (returns 0x04 or 0x05)");
+  Serial.println("b/B:  Return the info byte of the SSD");
+  Serial.println("c/C:  Reads the current block twice and compares");
+  Serial.println("d/D:  Dumps the whole of the current \"device\"");
+  Serial.println("f/F:  Dumps (fetches) the current block to serial");
+  Serial.println("h/H:  This help message");
+  Serial.println("i/I:  Return basic (formatted) information about the SSD");
+  Serial.println("n:    Go to the next block");
+  Serial.println("N:    Go to the start of the next \"device\" (reset block no. to 0)");
+  Serial.println("p:    Disable direct (fast) pin mode");
+  Serial.println("P:    Enable direct (fast) pin mode");
+  Serial.println("r:    Go to block 0 on current \"device\"");
+  Serial.println("R:    Soft reset - re-read SSD");
+  Serial.println("<CR>: New line");
+}
 //
 // MAIN CODE
 //
@@ -284,13 +303,18 @@ void loop() {
         dump(sibosp.getTotalBlocks());
         break;
 
+      case 'f':
+        dumpblock(curblock);
+        break;
+
+      case 'h':
+      case 'H':
+        help();
+        break;
+
       case 'i':
       case 'I':
         printinfo();
-        break;
-
-      case 'f':
-        dumpblock(curblock);
         break;
 
       // case 'j': // jump to an address
